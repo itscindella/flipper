@@ -57,6 +57,21 @@ module Flipper
               exit 1
             end
           end
+          variants_help = action == 'enable' ? "split enabled actors between variants (e.g. control=50,blue=50)" : "remove the variants"
+          c.on('--variants[=SPLIT]', variants_help) do |split|
+            if action == 'enable'
+              begin
+                variants = split.to_s.split(',').to_h { |pair| pair.split('=', 2).map(&:strip) }
+                values << Types::Variants.new(variants).validate!
+              rescue ArgumentError => e
+                ui.error "Invalid variants: #{e.message}"
+                ui.trace(e)
+                exit 1
+              end
+            else
+              values << Types::Variants.new({})
+            end
+          end
 
           c.action do |feature|
             usage_error!(c.help, "Missing feature name") unless feature
@@ -255,6 +270,10 @@ module Flipper
           end.join(', ')
         end
 
+        if (variants = variants_in_words(feature))
+          summary += " with variants #{variants}"
+        end
+
         colorize("%-#{padding}s" % feature.key, [:BOLD, :WHITE]) + " is #{summary}"
       end.join("\n")
     end
@@ -288,7 +307,16 @@ module Flipper
         indent(lines.flatten.join("\n"), 2)
       end
 
+      if (variants = variants_in_words(feature))
+        summary += "\nwith variants #{colorize(variants, [:MAGENTA])}"
+      end
+
       "#{colorize(feature.key, [:BOLD, :WHITE])} is #{summary}"
+    end
+
+    def variants_in_words(feature)
+      variants = feature.variants_value
+      variants&.sort&.map { |name, weight| "#{name} #{weight}%" }&.join(", ")
     end
 
     def pluralize(count, singular, plural)

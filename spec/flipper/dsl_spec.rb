@@ -263,6 +263,22 @@ RSpec.describe Flipper::DSL do
     end
   end
 
+  describe '#enable_variants/disable_variants/variants/variant' do
+    it 'sets, reads and removes variants' do
+      actor = Flipper::Actor.new("User;1")
+      expect(subject.variants(:stats)).to be_nil
+
+      subject.enable(:stats)
+      subject.enable_variants(:stats, "control" => 100)
+      expect(subject.variants(:stats)).to eq("control" => 100)
+      expect(subject.variant(:stats, actor)).to eq("control")
+
+      subject.disable_variants(:stats)
+      expect(subject.variants(:stats)).to be_nil
+      expect(subject.variant(:stats, actor)).to be_nil
+    end
+  end
+
   describe '#enable_percentage_of_time/disable_percentage_of_time' do
     it 'enables and disables the feature for percentage of time' do
       expect(subject[:stats].percentage_of_time_value).to be(0)

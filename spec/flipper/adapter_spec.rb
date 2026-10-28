@@ -9,6 +9,7 @@ RSpec.describe Flipper::Adapter do
       expression: nil,
       percentage_of_actors: nil,
       percentage_of_time: nil,
+      variants: nil,
     }
   end
 

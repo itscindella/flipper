@@ -196,6 +196,8 @@ module Flipper
           { percentage: value.to_s }
         when :expression
           value
+        when :variants
+          { variants: value }
         else
           raise "#{gate.key} is not a valid flipper gate key"
         end

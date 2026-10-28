@@ -63,6 +63,7 @@ RSpec.describe Flipper::Adapters::ReadOnly do
       },
       percentage_of_actors: '25',
       percentage_of_time: '45',
+      variants: nil,
     })
   end
 

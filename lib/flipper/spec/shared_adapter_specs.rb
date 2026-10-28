@@ -88,6 +88,24 @@ RSpec.shared_examples_for 'a flipper adapter' do
     expect(result[:expression]).to be(nil)
   end
 
+  it 'can enable, disable and get value for variants gate' do
+    variants_gate = feature.gate(:variants)
+    split = Flipper::Types::Variants.new("control" => 50, "blue" => 25.5, "green" => 24.5)
+
+    expect(subject.enable(feature, variants_gate, split)).to eq(true)
+    result = subject.get(feature)
+    expect(result[:variants]).to eq("control" => 50, "blue" => 25.5, "green" => 24.5)
+
+    replacement = Flipper::Types::Variants.new("control" => 100)
+    expect(subject.enable(feature, variants_gate, replacement)).to eq(true)
+    result = subject.get(feature)
+    expect(result[:variants]).to eq("control" => 100)
+
+    expect(subject.disable(feature, variants_gate, replacement)).to eq(true)
+    result = subject.get(feature)
+    expect(result[:variants]).to be(nil)
+  end
+
   it 'can enable, disable and get value for group gate' do
     expect(subject.enable(feature, group_gate, flipper.group(:admins))).to eq(true)
     expect(subject.enable(feature, group_gate, flipper.group(:early_access))).to eq(true)

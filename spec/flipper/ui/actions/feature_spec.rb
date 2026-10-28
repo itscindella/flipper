@@ -196,6 +196,32 @@ RSpec.describe Flipper::UI::Actions::Feature do
     end
   end
 
+  describe 'GET /features/:feature with variants' do
+    it 'renders no variants' do
+      get '/features/search'
+      expect(last_response.body).to include('No variants')
+    end
+
+    it 'renders the variants sorted by name, even when fully enabled' do
+      flipper.enable :search
+      flipper.enable_variants :search, "control" => 75, "blue" => 25
+      get '/features/search'
+
+      expect(last_response.status).to be(200)
+      expect(last_response.body).to include('Variants: blue 25%, control 75%')
+      expect(last_response.body).to include('value="control"')
+      expect(last_response.body).to include('/features/search/variants')
+    end
+
+    it 'escapes variant names' do
+      flipper.enable_variants :search, "<script>alert(1)</script>" => 100
+      get '/features/search'
+
+      expect(last_response.body).not_to include('<script>alert(1)</script>')
+      expect(last_response.body).to include('&lt;script&gt;')
+    end
+  end
+
   describe 'GET /features/:feature with _features in feature name' do
     before do
       get '/features/search_features'

@@ -91,6 +91,40 @@ RSpec.describe Flipper::CLI do
         expect(subject).to have_attributes(status: 1, stderr: /Invalid expression/m)
       end
     end
+
+    describe "feature --variants=control=75,blue=25" do
+      it do
+        expect(subject).to have_attributes(status: 0, stdout: /feature.*disabled.*with variants.*blue 25%, control 75%/m)
+        expect(Flipper.feature('feature').variants_value).to eq("control" => 75, "blue" => 25)
+        expect(Flipper).not_to be_enabled(:feature)
+      end
+    end
+
+    describe "feature --variants=control=75,blue=25 -p 30" do
+      it do
+        expect(subject).to have_attributes(status: 0, stdout: /30% of actors.*with variants/m)
+        expect(Flipper.feature('feature').variants_value).to eq("control" => 75, "blue" => 25)
+      end
+    end
+
+    describe "feature --variants=control=50,blue=40" do
+      it do
+        expect(subject).to have_attributes(status: 1, stderr: /Invalid variants: .*total 100/m)
+        expect(Flipper.feature('feature').variants_value).to be_nil
+      end
+    end
+
+    describe "feature --variants=control" do
+      it do
+        expect(subject).to have_attributes(status: 1, stderr: /Invalid variants/m)
+      end
+    end
+
+    describe "feature --variants" do
+      it do
+        expect(subject).to have_attributes(status: 1, stderr: /Invalid variants: .*at least one/m)
+      end
+    end
   end
 
   describe "disable" do
@@ -111,6 +145,20 @@ RSpec.describe Flipper::CLI do
         expect(Flipper.feature('feature').enabled_groups).to be_empty
       end
     end
+
+    describe "feature --variants" do
+      before do
+        Flipper.enable :feature
+        Flipper.enable_variants :feature, "control" => 100
+      end
+
+      it do
+        expect(subject).to have_attributes(status: 0, stdout: /feature.*enabled/)
+        expect(subject.stdout).not_to match(/with variants/)
+        expect(Flipper.feature('feature').variants_value).to be_nil
+        expect(Flipper).to be_enabled(:feature)
+      end
+    end
   end
 
   describe "list" do
@@ -122,6 +170,11 @@ RSpec.describe Flipper::CLI do
     it "lists features" do
       expect(subject).to have_attributes(status: 0, stdout: /foo.*enabled/)
       expect(subject).to have_attributes(status: 0, stdout: /bar.*disabled/)
+    end
+
+    it "lists variants" do
+      Flipper.enable_variants :foo, "control" => 50, "blue" => 50
+      expect(subject).to have_attributes(status: 0, stdout: /foo.*enabled.*with variants blue 50%, control 50%/)
     end
   end
 

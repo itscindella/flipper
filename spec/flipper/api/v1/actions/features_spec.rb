@@ -144,6 +144,11 @@ RSpec.describe Flipper::Api::V1::Actions::Features do
                   'name' => 'group',
                   'value' => [],
                 },
+                {
+                  'key' => 'variants',
+                  'name' => 'variants',
+                  'value' => nil,
+                },
               ],
             },
           ],
@@ -165,6 +170,7 @@ RSpec.describe Flipper::Api::V1::Actions::Features do
                 {'key' => 'percentage_of_actors', 'value' => nil},
                 { 'key' => 'percentage_of_time', 'value' => nil},
                 { 'key' => 'groups', 'value' => []},
+                { 'key' => 'variants', 'value' => nil},
               ],
             },
           ],
@@ -353,6 +359,11 @@ RSpec.describe Flipper::Api::V1::Actions::Features do
                   'name' => 'group',
                   'value' => [],
                 },
+                {
+                  'key' => 'variants',
+                  'name' => 'variants',
+                  'value' => nil,
+                },
               ],
             },
           ],
@@ -408,6 +419,11 @@ RSpec.describe Flipper::Api::V1::Actions::Features do
               'key' => 'groups',
               'name' => 'group',
               'value' => [],
+            },
+            {
+              'key' => 'variants',
+              'name' => 'variants',
+              'value' => nil,
             },
           ],
         }

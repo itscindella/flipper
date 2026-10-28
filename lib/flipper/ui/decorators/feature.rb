@@ -55,6 +55,14 @@ module Flipper
           Util.to_sentence(statuses)
         end
 
+        # Public: Plain text, e.g. "blue 25%, control 75%". Escape before
+        # rendering.
+        def variants_in_words
+          return "" unless (variants = feature.variants_value)
+
+          variants.sort.map { |name, weight| "#{name} #{weight}%" }.join(", ")
+        end
+
         def gate_state_title
           case feature.state
           when :on

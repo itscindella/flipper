@@ -10,7 +10,7 @@ module Flipper
     InstrumentationName = "feature_operation.#{InstrumentationNamespace}".freeze
 
     # Private: Gates hold no state, so every feature shares the same instances
-    # instead of allocating six per feature (adapters build throwaway features
+    # instead of allocating a set per feature (adapters build throwaway features
     # on every get_all).
     GATES_HASH = {
       boolean: Gates::Boolean.new,
@@ -19,6 +19,7 @@ module Flipper
       percentage_of_actors: Gates::PercentageOfActors.new,
       percentage_of_time: Gates::PercentageOfTime.new,
       group: Gates::Group.new,
+      variants: Gates::Variants.new,
     }.freeze
     private_constant :GATES_HASH
 
@@ -56,7 +57,7 @@ module Flipper
     #
     # Returns the result of Adapter#enable.
     def enable(thing = true)
-      enable_thing(thing, validate_expression: true)
+      enable_thing(thing, validate: true)
     end
 
     # Public: Disable this feature for something.
@@ -71,7 +72,7 @@ module Flipper
         payload[:gate_name] = gate.name
         payload[:thing] = wrapped_thing
 
-        adapter.disable self, gate, wrapped_thing
+        preserving_variants(gate) { adapter.disable self, gate, wrapped_thing }
       end
     end
 
@@ -124,6 +125,46 @@ module Flipper
           false
         end
       end
+    end
+
+    # Public: Get the variant for one or more actors.
+    #
+    # Returns the String variant name, or nil if the feature has no variants or
+    # is not enabled for the actors.
+    def variant(*actors)
+      actors = wrap_actors(actors)
+
+      instrument(:variant, thing: actors&.first, actors: actors) do |payload|
+        context = FeatureCheckContext.new(
+          feature_name: @name,
+          values: gate_values,
+          actors: actors
+        )
+
+        if context.variants_value && (open_gate = gates.detect { |gate| gate.open?(context) })
+          payload[:gate_name] = open_gate.name
+          gate(:variants).variant_for(context)
+        end
+      end
+    end
+
+    # Public: Sets the variants that actors the feature is enabled for are
+    # split between.
+    #
+    # variants - a Hash of String variant name => percentage. The percentages
+    #            must total 100.
+    #
+    # Returns result of enable.
+    # Raises ArgumentError if the variants are invalid.
+    def enable_variants(variants)
+      enable Types::Variants.wrap(variants)
+    end
+
+    # Public: Removes the variants for a feature.
+    #
+    # Returns result of disable.
+    def disable_variants
+      disable Types::Variants.new({}) # json gates ignore the value on disable
     end
 
     # Public: Enables an expression_to_add for a feature.
@@ -225,7 +266,7 @@ module Flipper
           # remaining was already stored (e.g. mirrored by sync). Persist it
           # unvalidated: rejecting it here would block removing unrelated
           # conditions from legacy data.
-          enable_thing(remaining, validate_expression: false)
+          enable_thing(remaining, validate: false)
         end
       end
     end
@@ -368,6 +409,13 @@ module Flipper
       gate_values.percentage_of_time
     end
 
+    # Public: Get the adapter value for the variants gate.
+    #
+    # Returns a Hash of String variant name => percentage, or nil.
+    def variants_value
+      gate_values.variants
+    end
+
     # Public: Get the gates that have been enabled for the feature.
     #
     # Returns an Array of Flipper::Gate instances.
@@ -453,22 +501,47 @@ module Flipper
     #
     # Returns the result of Adapter#enable.
     def enable_expression_from_sync(expression)
-      enable_thing(Expression.build(expression), validate_expression: false)
+      enable_thing(Expression.build(expression), validate: false)
     end
 
-    def enable_thing(thing, validate_expression:)
+    # Internal: Mirrors trusted remote variants during adapter sync, so one bad
+    # remote value can't abort syncing every other feature.
+    #
+    # Returns the result of Adapter#enable.
+    def enable_variants_from_sync(variants)
+      enable_thing(Types::Variants.new(variants), validate: false)
+    end
+
+    def enable_thing(thing, validate:)
       instrument(:enable) do |payload|
         gate = gate_for(thing)
         wrapped_thing = gate.wrap(thing)
-        validate_expression!(wrapped_thing) if validate_expression
+        if validate
+          validate_expression!(wrapped_thing)
+          wrapped_thing.validate! if wrapped_thing.is_a?(Types::Variants)
+        end
 
         adapter.add self
 
         payload[:gate_name] = gate.name
         payload[:thing] = wrapped_thing
 
-        adapter.enable self, gate, wrapped_thing
+        preserving_variants(gate) { adapter.enable self, gate, wrapped_thing }
       end
+    end
+
+    # Private: Adapters clear every gate on a boolean enable/disable, but
+    # variants describe values rather than who is enabled, so put them back.
+    # Not atomic: a variants write between the read and restore is lost.
+    #
+    # Returns the result of the block.
+    def preserving_variants(toggled_gate)
+      return yield unless toggled_gate.key == :boolean
+
+      variants = gate_values.variants
+      result = yield
+      adapter.enable(self, gate(:variants), Types::Variants.new(variants)) if variants
+      result
     end
 
     # Private: Raises if an expression about to be enabled contains empty

@@ -77,6 +77,11 @@ RSpec.describe Flipper::Api::V1::Actions::Feature do
               'name' => 'group',
               'value' => [],
             },
+            {
+              'key' => 'variants',
+              'name' => 'variants',
+              'value' => nil,
+            },
           ],
         }
 
@@ -125,6 +130,11 @@ RSpec.describe Flipper::Api::V1::Actions::Feature do
               'key' => 'groups',
               'name' => 'group',
               'value' => [],
+            },
+            {
+              'key' => 'variants',
+              'name' => 'variants',
+              'value' => nil,
             },
           ],
         }
@@ -191,6 +201,11 @@ RSpec.describe Flipper::Api::V1::Actions::Feature do
               'name' => 'group',
               'value' => [],
             },
+            {
+              'key' => 'variants',
+              'name' => 'variants',
+              'value' => nil,
+            },
           ],
         }
 
@@ -239,6 +254,11 @@ RSpec.describe Flipper::Api::V1::Actions::Feature do
               'key' => 'groups',
               'name' => 'group',
               'value' => [],
+            },
+            {
+              'key' => 'variants',
+              'name' => 'variants',
+              'value' => nil,
             },
           ],
         }

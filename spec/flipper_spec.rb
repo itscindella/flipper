@@ -159,6 +159,18 @@ RSpec.describe Flipper do
       expect(described_class.instance[:search].percentage_of_time_value).to be(5)
     end
 
+    it 'delegates enable_variants, variants, variant and disable_variants to instance' do
+      actor = Flipper::Actor.new("User;1")
+      described_class.enable(:search)
+      described_class.enable_variants(:search, "control" => 100)
+      expect(described_class.instance[:search].variants_value).to eq("control" => 100)
+      expect(described_class.variants(:search)).to eq("control" => 100)
+      expect(described_class.variant(:search, actor)).to eq("control")
+
+      described_class.disable_variants(:search)
+      expect(described_class.instance[:search].variants_value).to be_nil
+    end
+
     it 'delegates disable_percentage_of_time to instance' do
       described_class.disable_percentage_of_time(:search)
       expect(described_class.instance[:search].percentage_of_time_value).to be(0)

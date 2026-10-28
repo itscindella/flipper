@@ -84,6 +84,21 @@ module Flipper
         assert_nil result[:expression]
       end
 
+      def test_can_enable_disable_and_get_value_for_variants_gate
+        variants_gate = @feature.gate(:variants)
+        split = Flipper::Types::Variants.new("control" => 50, "blue" => 25.5, "green" => 24.5)
+
+        assert_equal true, @adapter.enable(@feature, variants_gate, split)
+        assert_equal({"control" => 50, "blue" => 25.5, "green" => 24.5}, @adapter.get(@feature)[:variants])
+
+        replacement = Flipper::Types::Variants.new("control" => 100)
+        assert_equal true, @adapter.enable(@feature, variants_gate, replacement)
+        assert_equal({"control" => 100}, @adapter.get(@feature)[:variants])
+
+        assert_equal true, @adapter.disable(@feature, variants_gate, replacement)
+        assert_nil @adapter.get(@feature)[:variants]
+      end
+
       def test_can_enable_disable_get_value_for_group_gate
         assert_equal true, @adapter.enable(@feature, @group_gate, @flipper.group(:admins))
         assert_equal true, @adapter.enable(@feature, @group_gate, @flipper.group(:early_access))

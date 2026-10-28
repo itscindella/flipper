@@ -44,5 +44,10 @@ module Flipper
     def percentage_of_time_value
       values.percentage_of_time
     end
+
+    # Public: Convenience method for variants value like Feature has.
+    def variants_value
+      values.variants
+    end
   end
 end
