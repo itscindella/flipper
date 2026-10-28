@@ -17,6 +17,7 @@ module Flipper
                       :local_percentage_of_actors
         def_delegator :@local_gate_values, :percentage_of_time,
                       :local_percentage_of_time
+        def_delegator :@local_gate_values, :variants, :local_variants
 
         def_delegator :@remote_gate_values, :expression, :remote_expression
         def_delegator :@remote_gate_values, :boolean, :remote_boolean
@@ -26,6 +27,7 @@ module Flipper
                       :remote_percentage_of_actors
         def_delegator :@remote_gate_values, :percentage_of_time,
                       :remote_percentage_of_time
+        def_delegator :@remote_gate_values, :variants, :remote_variants
 
         def initialize(feature, local_gate_values, remote_gate_values)
           @feature = feature
@@ -37,9 +39,11 @@ module Flipper
           if remote_disabled?
             return if local_disabled?
             @feature.disable
+            # disable keeps variants, so clear any the remote doesn't have
+            sync_variants
           elsif remote_boolean_enabled?
-            return if local_boolean_enabled?
-            @feature.enable
+            @feature.enable unless local_boolean_enabled?
+            sync_variants
           else
             @feature.disable if local_boolean_enabled?
             sync_groups
@@ -47,10 +51,21 @@ module Flipper
             sync_expression
             sync_percentage_of_actors
             sync_percentage_of_time
+            sync_variants
           end
         end
 
         private
+
+        def sync_variants
+          return if local_variants == remote_variants
+
+          if remote_variants.nil?
+            @feature.disable_variants
+          else
+            @feature.__send__ :enable_variants_from_sync, remote_variants
+          end
+        end
 
         def sync_expression
           return if local_expression == remote_expression

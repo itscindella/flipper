@@ -30,6 +30,7 @@ module Flipper
         import_invalid: Error.new(6, 'Import invalid.', 422),
         expression_invalid: Error.new(7, 'The provided expression was not valid.', 422),
         request_invalid: Error.new(8, 'Request invalid.', 400),
+        variants_invalid: Error.new(9, 'Variants must be named and their percentages must total 100.', 422),
       }.freeze
     end
   end

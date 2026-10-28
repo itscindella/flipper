@@ -90,6 +90,26 @@ Flipper.enable_group :search, :admin
 Flipper.enable_percentage_of_actors :search, 2
 ```
 
+### Variants
+
+Split the actors a feature is enabled for between string variants for multivariate experiments. Percentages must total 100. Each actor consistently gets the same variant, and actors the feature isn't enabled for get `nil`.
+
+```ruby
+Flipper.enable_percentage_of_actors :checkout, 50
+Flipper.enable_variants :checkout, control: 50, one_page: 30, express: 20
+
+case Flipper.variant(:checkout, current_user)
+when "one_page" then render_one_page_checkout
+when "express" then render_express_checkout
+else render_checkout # "control", or nil when not enrolled
+end
+
+Flipper.variants :checkout          # => {"control"=>50, "one_page"=>30, "express"=>20}
+Flipper.disable_variants :checkout
+```
+
+Variants are kept when you fully enable or disable a feature, and removed by `disable_variants`, `clear`, or `remove`. Changing the split moves some actors to a different variant. See [examples/variants.rb](examples/variants.rb).
+
 Read more about [getting started with Flipper](https://flippercloud.io/docs?utm_source=oss&utm_medium=readme&utm_campaign=getting_started) and [enabling features](https://flippercloud.io/docs/features?utm_source=oss&utm_medium=readme&utm_campaign=enabling_features).
 
 ## Flipper Cloud

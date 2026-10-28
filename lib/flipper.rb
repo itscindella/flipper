@@ -63,6 +63,7 @@ module Flipper
                  :enable_group, :disable_group,
                  :enable_percentage_of_actors, :disable_percentage_of_actors,
                  :enable_percentage_of_time, :disable_percentage_of_time,
+                 :variant, :variants, :enable_variants, :disable_variants,
                  :features, :feature, :[], :preload, :preload_all,
                  :adapter, :adapter_stack, :add, :exist?, :remove, :import, :export,
                  :memoize=, :memoizing?, :read_only?,
@@ -217,6 +218,7 @@ require 'flipper/types/group'
 require 'flipper/types/percentage'
 require 'flipper/types/percentage_of_actors'
 require 'flipper/types/percentage_of_time'
+require 'flipper/types/variants'
 require 'flipper/typecast'
 require 'flipper/version'
 

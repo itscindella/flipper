@@ -36,6 +36,7 @@ RSpec.describe Flipper::Adapters::Rollout do
         expression: nil,
         percentage_of_actors: 20.0,
         percentage_of_time: nil,
+        variants: nil,
       }
       expect(source_adapter.get(feature)).to eq(expected)
     end
@@ -50,6 +51,7 @@ RSpec.describe Flipper::Adapters::Rollout do
         expression: nil,
         percentage_of_actors: nil,
         percentage_of_time: nil,
+        variants: nil,
       }
       expect(source_adapter.get(feature)).to eq(expected)
     end
@@ -66,6 +68,7 @@ RSpec.describe Flipper::Adapters::Rollout do
         expression: nil,
         percentage_of_actors: nil,
         percentage_of_time: nil,
+        variants: nil,
       }
       expect(source_adapter.get(feature)).to eq(expected)
     end

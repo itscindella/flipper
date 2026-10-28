@@ -16,6 +16,7 @@ module Flipper
 
         @action_collection = ActionCollection.new
         @action_collection.add Api::V1::Actions::ExpressionGate
+        @action_collection.add Api::V1::Actions::VariantsGate
         @action_collection.add Api::V1::Actions::PercentageOfTimeGate
         @action_collection.add Api::V1::Actions::PercentageOfActorsGate
         @action_collection.add Api::V1::Actions::ActorsGate

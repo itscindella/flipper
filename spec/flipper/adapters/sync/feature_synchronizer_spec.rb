@@ -241,6 +241,83 @@ RSpec.describe Flipper::Adapters::Sync::FeatureSynchronizer do
     end
   end
 
+  context "variants" do
+    let(:split) { {"control" => 50, "blue" => 50} }
+
+    it "removes local variants when remote is disabled" do
+      feature.enable
+      feature.enable_variants(split)
+      remote = Flipper::GateValues.new({})
+
+      described_class.new(feature, feature.gate_values, remote).call
+
+      expect(feature.boolean_value).to be(false)
+      expect(feature.variants_value).to be_nil
+    end
+
+    it "keeps remote variants when remote has only variants" do
+      feature.enable
+      remote = Flipper::GateValues.new(variants: split)
+
+      described_class.new(feature, feature.gate_values, remote).call
+
+      expect(feature.boolean_value).to be(false)
+      expect(feature.variants_value).to eq(split)
+    end
+
+    it "adds remote variants when remote boolean enabled and local already enabled" do
+      feature.enable
+      remote = Flipper::GateValues.new(boolean: true, variants: split)
+      adapter.reset
+
+      described_class.new(feature, feature.gate_values, remote).call
+
+      expect(feature.boolean_value).to be(true)
+      expect(feature.variants_value).to eq(split)
+      expect_only_enable
+    end
+
+    it "enables and adds remote variants when remote boolean enabled and local disabled" do
+      remote = Flipper::GateValues.new(boolean: true, variants: split)
+
+      described_class.new(feature, feature.gate_values, remote).call
+
+      expect(feature.boolean_value).to be(true)
+      expect(feature.variants_value).to eq(split)
+    end
+
+    it "updates variants when remote conditionally enabled" do
+      feature.enable_percentage_of_actors(25)
+      feature.enable_variants("control" => 100)
+      remote = Flipper::GateValues.new(percentage_of_actors: 25, variants: split)
+      adapter.reset
+
+      described_class.new(feature, feature.gate_values, remote).call
+
+      expect(feature.variants_value).to eq(split)
+      expect_only_enable
+    end
+
+    it "mirrors invalid remote variants without raising" do
+      remote = Flipper::GateValues.new(boolean: true, variants: {"control" => 90})
+
+      described_class.new(feature, feature.gate_values, remote).call
+
+      expect(feature.variants_value).to eq("control" => 90)
+    end
+
+    it "does nothing to variants if in sync" do
+      feature.enable
+      feature.enable_variants(split)
+      remote = Flipper::GateValues.new(boolean: "true", variants: {"control" => "50", "blue" => "50"})
+      adapter.reset
+
+      described_class.new(feature, feature.gate_values, remote).call
+
+      expect_no_enable_or_disable
+    end
+  end
+
   def expect_no_enable_or_disable
     expect(adapter.count(:enable)).to be(0)
     expect(adapter.count(:disable)).to be(0)

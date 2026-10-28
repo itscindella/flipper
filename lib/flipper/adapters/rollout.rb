@@ -50,6 +50,7 @@ module Flipper
           percentage_of_actors: percentage_of_actors,
           percentage_of_time: nil,
           expression: nil,
+          variants: nil,
         }
       end
 

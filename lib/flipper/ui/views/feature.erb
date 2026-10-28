@@ -247,6 +247,58 @@
         </div>
       <% end %>
 
+      <%# Variants %>
+      <div class="js-toggle-container">
+        <div class="card-body border-bottom">
+          <div class="row align-items-center">
+            <div class="col col-me-auto">
+              <h6 class="m-0">
+                <strong class="<%= "text-muted" unless @feature.variants_value %>">
+                  <% if @feature.variants_value %>
+                    Variants: <%= @feature.variants_in_words %>
+                  <% else %>
+                    No variants
+                  <% end %>
+                </strong>
+              </h6>
+            </div>
+            <% if write_allowed? %>
+              <div class="col col-auto toggle-block-when-off">
+                <button class="btn btn-outline-secondary js-toggle-trigger">Edit</button>
+              </div>
+              <div class="col col-auto toggle-block-when-on">
+                <button class="btn btn-outline-secondary js-toggle-trigger">Hide</button>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <% if write_allowed? %>
+          <div class="card-body border-bottom toggle-block-when-on bg-lightest">
+            <p class="text-muted small">Actors this feature is enabled for are split between these variants. Percentages must total 100.</p>
+            <form action="<%= script_name %>/features/<%= Flipper::UI::Util.escape @feature.key %>/variants" method="post">
+              <%== csrf_input_tag %>
+              <% (@feature.variants_value.to_a + Array.new(3)).each do |(name, weight)| %>
+                <div class="row mb-2">
+                  <div class="col">
+                    <input type="text" name="names[]" value="<%= name %>" placeholder="Variant name (control, blue, etc.)" class="form-control">
+                  </div>
+                  <div class="col-auto">
+                    <input style="width:7em;" type="number" max="100" min="0" step="0.001" name="weights[]" value="<%= weight %>" placeholder="%" class="form-control">
+                  </div>
+                </div>
+              <% end %>
+              <div class="row">
+                <div class="col-auto"><input type="submit" name="action" value="Save" class="btn btn-primary"></div>
+                <% if @feature.variants_value %>
+                  <div class="col-auto"><input type="submit" name="action" value="Clear" class="btn btn-outline-danger"></div>
+                <% end %>
+              </div>
+            </form>
+          </div>
+        <% end %>
+      </div>
+
       <% if write_allowed? %>
         <div class="card-body">
           <form action="<%= script_name %>/features/<%= Flipper::UI::Util.escape @feature.key %>/boolean" method="post">

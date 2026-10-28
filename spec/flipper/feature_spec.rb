@@ -135,7 +135,7 @@ RSpec.describe Flipper::Feature do
       instance.gates.each do |gate|
         expect(gate).to be_a(Flipper::Gate)
       end
-      expect(instance.gates.size).to be(6)
+      expect(instance.gates.size).to be(7)
     end
   end
 
@@ -1322,6 +1322,7 @@ RSpec.describe Flipper::Feature do
               :boolean,
               :group,
               :expression,
+              :variants,
             ])
 
       expect(subject.disabled_gate_names.to_set).to eq(Set[
@@ -1329,7 +1330,130 @@ RSpec.describe Flipper::Feature do
               :boolean,
               :group,
               :expression,
+              :variants,
             ])
+    end
+  end
+
+  describe '#variant' do
+    let(:actor) { Flipper::Actor.new("User;1") }
+
+    it 'returns nil when there are no variants' do
+      subject.enable
+      expect(subject.variant(actor)).to be_nil
+    end
+
+    it 'returns nil when the feature is not enabled for the actor' do
+      subject.enable_variants("control" => 50, "blue" => 50)
+      expect(subject.variant(actor)).to be_nil
+    end
+
+    it 'returns nil without an actor' do
+      subject.enable
+      subject.enable_variants("control" => 50, "blue" => 50)
+      expect(subject.variant).to be_nil
+      expect(subject.variant(nil)).to be_nil
+    end
+
+    it 'returns a variant when fully enabled' do
+      subject.enable
+      subject.enable_variants("control" => 100)
+      expect(subject.variant(actor)).to eq("control")
+    end
+
+    it 'returns a variant when enabled for the actor by another gate' do
+      subject.enable_actor(actor)
+      subject.enable_variants("blue" => 100)
+      expect(subject.variant(actor)).to eq("blue")
+      expect(subject.variant(Flipper::Actor.new("User;2"))).to be_nil
+    end
+
+    it 'returns a variant for groups and expressions' do
+      Flipper.register(:admins) { |actor| actor.respond_to?(:admin?) && actor.admin? }
+      admin = Struct.new(:flipper_id, :admin?, :flipper_properties).new("User;3", true, {"plan" => "basic"})
+      subject.enable_variants("blue" => 100)
+
+      subject.enable_group(:admins)
+      expect(subject.variant(admin)).to eq("blue")
+      subject.disable_group(:admins)
+
+      subject.enable_expression(Flipper.property(:plan).eq("basic"))
+      expect(subject.variant(admin)).to eq("blue")
+    ensure
+      Flipper.unregister_groups
+    end
+
+    it 'is stable for an actor' do
+      subject.enable
+      subject.enable_variants("control" => 34, "blue" => 33, "green" => 33)
+      expect(Array.new(5) { subject.variant(actor) }.uniq.size).to be(1)
+    end
+
+    it 'buckets independently of percentage of actors' do
+      subject.enable_percentage_of_actors(50)
+      subject.enable_variants("control" => 50, "blue" => 50)
+
+      counts = Hash.new(0)
+      4_000.times { |i| counts[subject.variant(Flipper::Actor.new("User;#{i}"))] += 1 }
+
+      expect(counts[nil]).to be_within(200).of(2_000)
+      expect(counts["control"]).to be_within(200).of(1_000)
+      expect(counts["blue"]).to be_within(200).of(1_000)
+    end
+
+    it 'instruments the check' do
+      instrumenter = Flipper::Instrumenters::Memory.new
+      feature = described_class.new(:search, adapter, instrumenter: instrumenter)
+      feature.enable
+      feature.enable_variants("control" => 100)
+      instrumenter.reset
+
+      expect(feature.variant(actor)).to eq("control")
+
+      event = instrumenter.events.last
+      expect(event.payload[:operation]).to eq(:variant)
+      expect(event.payload[:gate_name]).to eq(:boolean)
+      expect(event.payload[:result]).to eq("control")
+      expect(event.payload[:actors]).to eq([Flipper::Types::Actor.new(actor)])
+    end
+  end
+
+  describe '#enable_variants' do
+    it 'stores the variants without enabling the feature' do
+      subject.enable_variants(control: 50, blue: 50)
+      expect(subject.variants_value).to eq("control" => 50, "blue" => 50)
+      expect(subject.state).to be(:off)
+      expect(subject.enabled_gate_names).to eq([])
+    end
+
+    it 'replaces existing variants' do
+      subject.enable_variants(control: 50, blue: 50)
+      subject.enable_variants(control: 10, green: 90)
+      expect(subject.variants_value).to eq("control" => 10, "green" => 90)
+    end
+
+    it 'raises and stores nothing when invalid' do
+      expect { subject.enable_variants(control: 50, blue: 40) }.to raise_error(ArgumentError, /total 100/)
+      expect { subject.enable(Flipper::Types::Variants.new({})) }.to raise_error(ArgumentError)
+      expect(subject.variants_value).to be_nil
+    end
+
+    it 'survives fully enabling and disabling the feature' do
+      subject.enable_variants(control: 50, blue: 50)
+      subject.enable
+      expect(subject.variants_value).to eq("control" => 50, "blue" => 50)
+      subject.disable
+      expect(subject.variants_value).to eq("control" => 50, "blue" => 50)
+    end
+
+    it 'is removed by clear and disable_variants' do
+      subject.enable_variants(control: 50, blue: 50)
+      subject.clear
+      expect(subject.variants_value).to be_nil
+
+      subject.enable_variants(control: 50, blue: 50)
+      subject.disable_variants
+      expect(subject.variants_value).to be_nil
     end
   end
 end

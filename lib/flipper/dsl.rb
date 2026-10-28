@@ -40,6 +40,37 @@ module Flipper
       feature(name).enabled?(*args)
     end
 
+    # Public: Get the variant of a feature for one or more actors.
+    #
+    # name - The String or Symbol name of the feature.
+    # args - The actors passed through to Feature#variant.
+    #
+    # Returns the String variant name, or nil if the feature has no variants or
+    # is not enabled for the actors.
+    def variant(name, *args)
+      feature(name).variant(*args)
+    end
+
+    # Public: Set the variants for a feature.
+    #
+    # name - The String or Symbol name of the feature.
+    # variants - a Hash of String variant name => percentage. The percentages
+    #            must total 100.
+    #
+    # Returns result of Feature#enable.
+    def enable_variants(name, variants)
+      feature(name).enable_variants(variants)
+    end
+
+    # Public: Remove the variants for a feature.
+    #
+    # name - The String or Symbol name of the feature.
+    #
+    # Returns result of Feature#disable.
+    def disable_variants(name)
+      feature(name).disable_variants
+    end
+
     # Public: Enable a feature.
     #
     # name - The String or Symbol name of the feature.
@@ -269,6 +300,15 @@ module Flipper
     # Returns an instance of Flipper::Expression.
     def expression(name)
       feature(name).expression
+    end
+
+    # Public: Gets the variants for the feature.
+    #
+    # name - The String or Symbol name of the feature.
+    #
+    # Returns a Hash of String variant name => percentage, or nil.
+    def variants(name)
+      feature(name).variants_value
     end
 
     # Public: Returns a Set of the known features for this adapter.
